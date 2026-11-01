@@ -34,17 +34,15 @@ and verifies SHA-256 checksums. Subsequent runs can use verified local files.
 are kept separate. Use the lag/mean/std columns as predictors. Each series will
 have its own model; metrics with different units are not pooled.
 
-## Current status
+## Implementation
 
-The Word/PDF files in `output/` are earlier report drafts. Later wording was
-revised during review; these exports are not the final submitted report.
-Report builders additionally require python-docx, reportlab, pypdf and pypdfium2;
-these are not required to reproduce the data pipeline.
+Completed: dataset download and checksum verification, data-quality audit,
+duplicate handling, lag and rolling features, chronological splits, and
+preprocessing tests.
 
-Data acquisition, audit and feature preparation are implemented. Models, alert
-threshold selection and final evaluation are not yet implemented. The split
-audit examines annotation counts, including test counts, solely to establish
-feasibility; no test model performance has been calculated.
+Remaining: implement the rolling-threshold, persistence and Random Forest
+methods; group and match alert episodes; select settings and thresholds on
+development data; and evaluate the frozen methods on the test periods.
 
 ## Source and reuse
 

@@ -2,7 +2,6 @@
 
 **Project:** Evaluating Forecast-Based Alerts for Cloud Infrastructure Monitoring
 **Student:** Mamadou Kaba — COEN 6314
-**Status:** Preprocessing implemented and run; model evaluation has not started.
 
 ## Data obtained
 
@@ -103,18 +102,18 @@ gaps. The separate evaluation mask supports consistent handling for all methods.
 
 ## Remaining work and limitations
 
-The downloader and preprocessing pipeline ran successfully. Four automated checks
-passed, covering predictor causality, gap handling, missing-value handling and
-chronological separation of generated splits. Detailed per-series quality and
-split tables are saved alongside this report. No dataset-access problem remains.
+Data download, cleaning, feature generation and chronological splitting are
+implemented. The four preprocessing tests pass, and per-series quality and
+split tables are saved in `reports/tables/`.
 
 The main unresolved limitation is the small, uneven event count: only 13 complete
 test windows remain across 11 series. I will retain all series for false-alert analysis,
 report event detection as undefined where no windows exist, and present
 per-series results plus equal-weight summaries with their denominators. The evidence will support an
 exploratory comparison, not a strong general claim about production reliability.
-Next, I will implement the three methods and shared episode-matching rules,
-select settings on development data, then run one final test evaluation.
+The remaining implementation is the three alerting methods, episode grouping
+and matching, development-based selection of settings and thresholds, and
+final test evaluation.
 
 **Source:** https://github.com/numenta/NAB (revision recorded in
 `config/data_manifest.json`).

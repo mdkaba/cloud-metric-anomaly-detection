@@ -1,6 +1,7 @@
 # Evaluation protocol for the modelling milestone
 
-This is a specification, not a claim that models or alert evaluation are complete.
+Data preparation and chronological splits are implemented. The methods, alert
+episode matching and evaluation described below remain to be implemented.
 
 1. Fit a separate forecasting model per series using training CSVs only. Persistence
    predicts `lag_1`; Random Forest uses the lag/rolling predictors. The rolling
