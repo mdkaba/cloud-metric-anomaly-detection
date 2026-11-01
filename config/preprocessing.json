@@ -1,0 +1,6 @@
+{
+  "train_fraction": 0.2,
+  "development_fraction": 0.4,
+  "lags": [1, 2, 3, 6, 12],
+  "rolling_windows": [6, 12]
+}

@@ -1,0 +1,98 @@
+from pathlib import Path
+from docx import Document
+from docx.shared import Inches, Pt, RGBColor
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+
+ROOT = Path(__file__).resolve().parents[1]
+doc = Document()
+s = doc.sections[0]
+s.page_width, s.page_height = Inches(8.5), Inches(11)
+s.top_margin, s.bottom_margin = Inches(.6), Inches(.6)
+s.left_margin = s.right_margin = Inches(.7)
+normal = doc.styles['Normal']
+normal.font.name = 'Calibri'
+normal.font.size = Pt(10.5)
+normal.paragraph_format.space_after = Pt(5)
+normal.paragraph_format.line_spacing = 1.03
+for name,size in [('Title',16),('Heading 1',11),('Heading 2',10.5)]:
+    style = doc.styles[name]
+    style.font.name = 'Calibri'
+    style.font.size = Pt(size)
+    style.font.color.rgb = RGBColor(0,0,0)
+    style.font.bold = True
+    style.paragraph_format.space_before = Pt(7 if name!='Title' else 0)
+    style.paragraph_format.space_after = Pt(4)
+
+content=[]
+def p(text):
+    doc.add_paragraph(text)
+    content.append(text)
+def h(text):
+    doc.add_heading(text,1)
+    content.append('## '+text)
+def table(headers,rows,widths):
+    t=doc.add_table(rows=1, cols=len(headers))
+    t.autofit=False
+    for col,w in zip(t.columns,widths): col.width=Inches(w)
+    for cell,text,w in zip(t.rows[0].cells,headers,widths):
+        cell.width=Inches(w)
+        cell.text=text
+        shading=OxmlElement('w:shd');shading.set(qn('w:fill'),'E8EDF2');cell._tc.get_or_add_tcPr().append(shading)
+    repeat=OxmlElement('w:tblHeader');t.rows[0]._tr.get_or_add_trPr().append(repeat)
+    for values in rows:
+        for cell,text,w in zip(t.add_row().cells,values,widths):
+            cell.width=Inches(w);cell.text=text
+    for i,row in enumerate(t.rows):
+        cant=OxmlElement('w:cantSplit');row._tr.get_or_add_trPr().append(cant)
+        for cell in row.cells:
+            for para in cell.paragraphs:
+                para.paragraph_format.space_after=Pt(3)
+                para.paragraph_format.space_before=Pt(3)
+                para.paragraph_format.line_spacing=1
+                for run in para.runs:
+                    run.font.size=Pt(9.5);run.bold=(i==0)
+    content.append('| '+' | '.join(headers)+' |\n| '+' | '.join(['---']*len(headers))+' |\n'+'\n'.join('| '+' | '.join(r)+' |' for r in rows))
+
+doc.add_paragraph('Data Collection and Preprocessing', 'Title')
+p('Evaluating Forecast-Based Alerts for Cloud Infrastructure Monitoring\nMamadou Kaba | COEN 6314 | November 1, 2026')
+p('Infrastructure alerts must balance false alarms against missed anomalies. My project compares rolling statistical thresholds, persistence forecasting and Random Forest forecasting to assess whether learned forecasts improve this balance. This milestone prepares a common dataset and chronological evaluation periods so differences in alert performance can be attributed to the methods rather than inconsistent data handling.')
+h('Data obtained and its role in the comparison')
+p('I downloaded all 17 series in the Numenta Anomaly Benchmark (NAB) realAWSCloudwatch subset and its combined anomaly-window annotations [1]. The historical recordings cover CPU, network, disk and request metrics. The source repository provides an MIT license permitting reuse subject to retaining its copyright and permission notice. I retained the license and original files and recorded the source revision and file checksums for reproducibility.')
+p('Each series supplies a timestamp and one metric value. Persistence will forecast the next reading from the previous value; Random Forest will use recent readings and rolling statistics. Their forecast errors will produce anomaly scores after the new reading arrives. The rolling-threshold baseline will compare that reading with recent level and variability. Anomaly windows are separate evaluation labels, never model inputs; this is anomaly detection, not advance failure prediction.')
+h('Data quality and preparation decisions')
+table(['Observed finding','Preparation decision and reason'],[
+('17 series; 67,740 readings; 1.86 MB of CSVs','Keep series separate because metric units and operating patterns differ.'),
+('No missing or non-finite values; 19 irregular intervals','Do not fill or interpolate gaps. Require complete, regularly spaced history so artificial values do not affect alerts.'),
+('22 excess duplicate rows across two series; one conflicting timestamp','Use the median at each duplicate timestamp to avoid repeated observations and an arbitrary choice among conflicting values.'),
+('30 windows; 6,312 of 67,718 unique readings inside windows (9.32%)','Keep the natural imbalance and unusual values. Removing extremes or balancing classes could distort false-alarm and detection evaluation.')
+],[2.45,4.65])
+p('The typical cadence is five minutes, so faster changes are not resolved. Timezones and duplicate arrival order are unspecified; I preserve timestamps and assume same-timestamp readings are available together. These short historical recordings cannot establish current production reliability. Annotation windows provide timing tolerance, not verified incident durations; their 9.32% coverage is not an incident rate.')
+
+doc.add_page_break()
+h('Features and fair comparison')
+p('I created lags of 1, 2, 3, 6 and 12 readings and the mean and population standard deviation of the preceding 6 and 12 readings. These give Random Forest recent level and variability over five minutes to one hour; lag 1 also supplies persistence, while rolling statistics support the threshold baseline. All features exclude the current target reading. No scaling is fitted because the tree model does not require it and each series will be modelled separately.')
+p('Cadence is estimated from training timestamps only. Predictions require a finite target and 12 preceding readings at that cadence. Warm-up and interrupted histories exclude 410 unique readings, leaving 67,308 forecast examples. All methods will use these same eligible timestamps, even though persistence needs less history, to avoid giving one method an easier evaluation set. Any later learned preprocessing will be fitted on training data only.')
+h('Chronological split and leakage prevention')
+p('Within each series, I assigned the first 20% of unique timestamps to training, the next 40% to development (validation) and the final 40% to testing. There is no random shuffle or pooling across series. Earlier observations may supply history at the start of a later period, as they would in sequential monitoring.')
+table(['Period','Forecast examples','Complete windows','Series with windows'],[
+('Training','13,296','0','0'),('Development','26,956','13','11'),('Test','27,056','13','11')
+],[1.15,1.85,1.85,2.25])
+p('This split retains events for development and testing at the cost of limited training history: 236-931 usable examples per series, most commonly 794. Four windows cross boundaries and are excluded from scoring and its monitored-time denominator, but their readings remain in observed history. Zero complete training windows therefore does not establish anomaly-free training. The regression target is a metric value, so labelled anomalies are not required for fitting.')
+p('The feasibility audit inspected annotation locations and counts, including the test period, before model fitting. No test performance has been calculated. The split is now fixed. Models will be fitted on training data; feature choices, model settings and alert thresholds will be selected on development data. Test labels will be used for scoring only after these choices are frozen.')
+h('Progress and remaining limitations')
+p('Acquisition, cleaning and feature generation are complete, with per-series audit tables saved. Four checks passed for causal features, gap handling, missing-value handling and chronological split separation. Models and alert-performance evaluation are not yet implemented, and no access problem remains.')
+p('The main constraint is only 13 complete test windows across 11 series. I will keep all series for false-alert analysis, mark detection rates undefined where no events exist, and report per-series results plus equal-weight summaries with denominators. Gap exclusions and the conflicting duplicate remain measurement limitations; I will retain their audit records and identify affected series when interpreting errors. Next, I will implement shared alert-episode rules and the three methods, select settings on development data, and evaluate false alert episodes per monitored day, windows detected and detection timing at comparable false-alert rates. Conclusions will remain limited to this benchmark.')
+p('[1] Numenta Anomaly Benchmark. https://github.com/numenta/NAB. Exact revision and checksums: config/data_manifest.json.')
+
+footer=s.footer.paragraphs[0]
+footer.alignment=2
+run=footer.add_run();run.font.size=Pt(9)
+field=OxmlElement('w:fldSimple');field.set(qn('w:instr'),'PAGE');run._r.addnext(field)
+doc.core_properties.author='Mamadou Kaba'
+doc.core_properties.title='Data Collection and Preprocessing for Infrastructure Alert Evaluation'
+out=ROOT/'output/docx';out.mkdir(parents=True,exist_ok=True)
+path=out/'COEN6314_Data_Collection_and_Preprocessing.docx'
+doc.save(path)
+(ROOT/'reports/data_collection_and_preprocessing_word.md').write_text('# Data Collection and Preprocessing\n\n'+'\n\n'.join(content)+'\n',encoding='utf-8')
+print(path)

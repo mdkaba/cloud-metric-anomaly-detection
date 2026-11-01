@@ -1,0 +1,2 @@
+# Data download, preprocessing and tests use Python 3.11+ standard library only.
+# Add and pin modelling dependencies when the modelling milestone begins.

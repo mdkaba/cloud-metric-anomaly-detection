@@ -1,0 +1,19 @@
+{
+  "raw_rows": 67740,
+  "unique_rows": 67718,
+  "missing_values": 0,
+  "invalid_values": 0,
+  "duplicate_excess": 22,
+  "conflicting_duplicate_groups": 1,
+  "irregular_intervals": 19,
+  "annotation_windows": 30,
+  "annotated_readings": 6312,
+  "boundary_windows": 4,
+  "usable_rows": 67308,
+  "series": 17,
+  "split_complete_windows": {
+    "train": 0,
+    "development": 13,
+    "test": 13
+  }
+}
